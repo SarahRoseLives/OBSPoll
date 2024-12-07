@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Poll Results</title>
+</head>
+<body>
+    <h1 id="question">{{ poll_data.question }}</h1>
+    <h2>Results</h2>
+    <ul id="results">
+        {% for choice, votes in poll_data.votes.items() %}
+        <li>{{ choice }}: {{ votes }} votes</li>
+        {% endfor %}
+    </ul>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const questionElement = document.getElementById("question");
+            const resultsList = document.getElementById("results");
+
+            // Function to update the question and results
+            async function updatePollData() {
+                const response = await fetch("/results");
+                const pollData = await response.json();
+
+                // Update question
+                questionElement.textContent = pollData.question;
+
+                // Update results
+                resultsList.innerHTML = ""; // Clear existing results
+                for (const [choice, votes] of Object.entries(pollData.votes)) {
+                    const listItem = document.createElement("li");
+                    listItem.textContent = `${choice}: ${votes} votes`;
+                    resultsList.appendChild(listItem);
+                }
+            }
+
+            // Periodically fetch updates every 5 seconds
+            setInterval(updatePollData, 5000);
+        });
+    </script>
+</body>
+</html>

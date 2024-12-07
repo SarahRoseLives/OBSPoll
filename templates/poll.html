@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Poll</title>
+</head>
+<body>
+    <h1 id="question">{{ poll_data.question }}</h1>
+    <form id="pollForm">
+        <div id="choices">
+            {% for choice in poll_data.choices.keys() %}
+            <input type="radio" id="{{ choice }}" name="choice" value="{{ choice }}" required>
+            <label for="{{ choice }}">{{ choice }}</label><br>
+            {% endfor %}
+        </div>
+        <button type="submit">Vote</button>
+    </form>
+
+    <h2>Current Results</h2>
+    <ul id="results">
+        {% for choice, votes in poll_data.votes.items() %}
+        <li>{{ choice }}: {{ votes }} votes</li>
+        {% endfor %}
+    </ul>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const pollForm = document.getElementById("pollForm");
+            const questionElement = document.getElementById("question");
+            const choicesContainer = document.getElementById("choices");
+            const resultsList = document.getElementById("results");
+
+            // Handle form submission to vote
+            pollForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const formData = new FormData(pollForm);
+                const selectedChoice = formData.get("choice");
+
+                const response = await fetch("/vote", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ choice: selectedChoice }),
+                });
+
+                if (response.ok) {
+                    updatePollData();
+                }
+            });
+
+            // Function to update the poll data (question, choices, and results)
+            async function updatePollData() {
+                const response = await fetch("/results");
+                const pollData = await response.json();
+
+                // Update question
+                questionElement.textContent = pollData.question;
+
+                // Update choices
+                choicesContainer.innerHTML = ""; // Clear existing choices
+                for (const choice of Object.keys(pollData.choices)) {
+                    const choiceInput = document.createElement("input");
+                    choiceInput.type = "radio";
+                    choiceInput.id = choice;
+                    choiceInput.name = "choice";
+                    choiceInput.value = choice;
+                    choiceInput.required = true;
+
+                    const choiceLabel = document.createElement("label");
+                    choiceLabel.htmlFor = choice;
+                    choiceLabel.textContent = choice;
+
+                    choicesContainer.appendChild(choiceInput);
+                    choicesContainer.appendChild(choiceLabel);
+                    choicesContainer.appendChild(document.createElement("br"));
+                }
+
+                // Update results
+                resultsList.innerHTML = ""; // Clear existing results
+                for (const [choice, votes] of Object.entries(pollData.votes)) {
+                    const listItem = document.createElement("li");
+                    listItem.textContent = `${choice}: ${votes} votes`;
+                    resultsList.appendChild(listItem);
+                }
+            }
+
+            // Periodically fetch updates every 5 seconds
+            setInterval(updatePollData, 5000);
+        });
+    </script>
+</body>
+</html>
